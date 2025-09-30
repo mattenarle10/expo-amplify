@@ -915,12 +915,6 @@ expo-amplify/
 - [Expo Documentation](https://docs.expo.dev/) - Expo framework docs
 - [React Native](https://reactnative.dev/) - React Native docs
 
-### Related Project Files
-
-- `README.md` - Quick overview and setup instructions
-- `API_REFERENCE.md` - Detailed API endpoints and usage examples
-- `CHANGES_FOR_EXPO_GO.md` - Technical details of Expo Go modifications
-- `QUICK_START.md` - 5-minute quick start guide
 
 ### Community & Support
 
@@ -928,13 +922,3 @@ expo-amplify/
 - [Amplify GitHub](https://github.com/aws-amplify) - Source code and issues
 - [Expo Forums](https://forums.expo.dev/) - Expo community
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/aws-amplify) - Q&A
-
----
-
-## License
-
-MIT
-
----
-
-**Built with ❤️ using Expo and AWS Amplify Gen 2**
