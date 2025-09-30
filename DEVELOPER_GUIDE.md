@@ -1,518 +1,748 @@
 # Complete Developer Guide
 
-> **Comprehensive documentation for Expo + AWS Amplify Authentication**  
-> This guide combines setup instructions, technical details, API reference, and Expo Go modifications.
+> **Step-by-step guide to building an Expo + AWS Amplify Authentication app**  
+> Follow this narrative to understand how we built this project from scratch.
 
 ---
 
-# Expo + AWS Amplify Authentication
+## Table of Contents
 
-A React Native mobile app with email authentication, built with Expo and AWS Amplify Gen 2.
+1. [Project Overview](#1-project-overview)
+2. [Initial Setup](#2-initial-setup)
+3. [Backend Configuration](#3-backend-configuration)
+4. [Frontend Implementation](#4-frontend-implementation)
+5. [Expo Go Compatibility](#5-expo-go-compatibility)
+6. [Testing & Debugging](#6-testing--debugging)
+7. [Deployment](#7-deployment)
+8. [API Usage](#8-api-usage)
 
-## ✨ Features
+---
 
-- Email/password sign up with OTP verification
-- User sign in and sign out
-- Session persistence
-- Custom UI (no external UI library)
-- Works in Expo Go
+## 1. Project Overview
 
-## 🛠️ Tech Stack
+### What We're Building
 
-- **Frontend**: React Native + Expo + TypeScript
+A React Native mobile app with email-based authentication that:
+- Allows users to sign up with email/password
+- Sends OTP codes for email verification
+- Handles sign in and sign out
+- Persists user sessions
+- Works in Expo Go (no native build required for development)
+
+### Tech Stack
+
+- **Frontend**: React Native with Expo (~54.0.10), TypeScript
 - **Backend**: AWS Amplify Gen 2
-- **Auth**: Amazon Cognito
+- **Authentication**: Amazon Cognito User Pools
 - **API**: AWS AppSync GraphQL
-
-## 🚀 Quick Start
-
-```bash
-# Install dependencies
-npm install
-
-# Start Amplify backend (terminal 1)
-npx ampx sandbox --profile <your-aws-profile>
-
-# Start Expo (terminal 2)
-npx expo start
-
-# Scan QR code with Expo Go app
-```
-
-## 📁 Project Structure
-
-```
-expo-amplify/
-├── App.tsx                 # Main app with auth UI
-├── index.ts                # Entry point with polyfills
-├── amplify/
-│   ├── auth/resource.ts    # Cognito configuration
-│   └── data/resource.ts    # GraphQL schema
-└── amplify_outputs.json    # Auto-generated config
-```
-
-## 🔑 Key Changes for Expo Go
-
-Amplify's default auth uses SRP (requires native modules). We modified it to work in Expo Go:
-
-1. **Added polyfills** (`index.ts`):
-   ```typescript
-   import 'react-native-get-random-values';
-   import 'react-native-url-polyfill/auto';
-   ```
-
-2. **Changed auth flow** to `USER_PASSWORD_AUTH`:
-   ```typescript
-   await signIn({
-     username: email,
-     password,
-     options: { authFlowType: "USER_PASSWORD_AUTH" }
-   });
-   ```
-
-3. **Enabled in Cognito**: AWS Console → Cognito → App clients → Enable `ALLOW_USER_PASSWORD_AUTH`
-
-4. **Custom UI**: Built with React Native components instead of Amplify Authenticator
-
-> **For production**: Use a native build with `USER_SRP_AUTH` for better security.
-
-## 📍 View Your Resources
-
-```bash
-# User Pool ID
-cat amplify_outputs.json | grep user_pool_id
-
-# API Endpoint
-cat amplify_outputs.json | grep '"url"'
-```
-
-**AWS Console**:
-- **Users**: Cognito → User Pools → Your pool → Users tab
-- **API**: AppSync → APIs → Your API
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| "Unknown error occurred" | Enable `ALLOW_USER_PASSWORD_AUTH` in Cognito app client |
-| Backend changes not showing | Restart sandbox and Expo with `npx expo start -c` |
-| Session not persisting | Already handled with AsyncStorage |
-
-## 📚 Documentation
-
-- **Detailed Guide**: See `DEVELOPER_GUIDE.md` for comprehensive documentation
-- **API Reference**: See `API_REFERENCE.md` for endpoints and usage
-- **Quick Start**: See `QUICK_START.md` for 5-minute setup
-
-## 📖 Learn More
-
-- [AWS Amplify Docs](https://docs.amplify.aws/react-native/)
-- [Amplify Auth](https://docs.amplify.aws/react-native/build-a-backend/auth/)
-- [Expo Documentation](https://docs.expo.dev/)
-
-## 📄 License
-
-MIT
+- **Storage**: AsyncStorage for session persistence
 
 ---
 
-**Built with Expo and AWS Amplify Gen 2**
-# Changes Made for Expo Go Compatibility
+## 2. Initial Setup
 
-This document explains all the modifications we made to get AWS Amplify Auth working in Expo Go.
+### Step 1: Create Expo Project
 
-## 🎯 The Problem
+```bash
+# Create new Expo project
+npx create-expo-app expo-amplify --template blank-typescript
 
-AWS Amplify's default authentication uses **SRP (Secure Remote Password)** protocol, which requires native cryptographic modules that are **not available in Expo Go**. This causes the error:
+# Navigate to project
+cd expo-amplify
+```
+
+### Step 2: Install Dependencies
+
+```bash
+# Install Amplify packages
+npm install aws-amplify @aws-amplify/react-native
+
+# Install required React Native packages
+npm install @react-native-async-storage/async-storage
+npm install @react-native-community/netinfo
+npm install react-native-get-random-values
+npm install react-native-url-polyfill
+
+# Install dev dependencies
+npm install --save-dev @aws-amplify/backend @aws-amplify/backend-cli
+```
+
+**What each package does**:
+- `aws-amplify` - Core Amplify library
+- `@aws-amplify/react-native` - React Native specific utilities
+- `@react-native-async-storage/async-storage` - Store auth tokens
+- `@react-native-community/netinfo` - Network status detection
+- `react-native-get-random-values` - Crypto polyfill
+- `react-native-url-polyfill` - URL API polyfill
+
+---
+
+## 3. Backend Configuration
+
+### Step 3: Initialize Amplify Backend
+
+```bash
+# Initialize Amplify Gen 2
+npx ampx init
+```
+
+This creates:
+- `amplify/` directory for backend configuration
+- `amplify/backend.ts` - main backend definition
+- `amplify/auth/resource.ts` - authentication configuration
+- `amplify/data/resource.ts` - GraphQL API schema
+
+### Step 4: Configure Authentication
+
+Edit `amplify/auth/resource.ts`:
+
+```typescript
+import { defineAuth } from '@aws-amplify/backend';
+
+export const auth = defineAuth({
+  loginWith: {
+    email: true,  // Use email as username
+  },
+  userAttributes: {
+    email: {
+      required: true,
+    },
+  },
+});
+```
+
+**What this configures**:
+- Email-based authentication (email is the username)
+- Email verification required
+- Password policy: min 8 chars, uppercase, lowercase, numbers, symbols
+- Creates a Cognito User Pool when deployed
+
+### Step 5: Configure Data API (Optional)
+
+Edit `amplify/data/resource.ts`:
+
+```typescript
+import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+
+const schema = a.schema({
+  Todo: a
+    .model({
+      content: a.string(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+});
+
+export type Schema = ClientSchema<typeof schema>;
+export const data = defineData({ schema });
+```
+
+**What this creates**:
+- GraphQL API with AWS AppSync
+- DynamoDB table for Todo items
+- Auto-generated queries and mutations
+
+### Step 6: Deploy Backend (Sandbox Mode)
+
+```bash
+# Start sandbox (development environment)
+npx ampx sandbox --profile <your-aws-profile>
+```
+
+**What happens during deployment**:
+1. ✅ Creates Amazon Cognito User Pool
+2. ✅ Creates Cognito Identity Pool
+3. ✅ Deploys AWS AppSync GraphQL API
+4. ✅ Creates DynamoDB tables
+5. ✅ Generates `amplify_outputs.json` with all configuration
+
+**Important Notes**:
+- Keep this terminal running - sandbox watches for file changes
+- Sandbox is for development only - data is temporary
+- User accounts persist until manually deleted
+- `amplify_outputs.json` is auto-generated (add to `.gitignore`)
+
+---
+
+## 4. Frontend Implementation
+
+### Step 7: Add Polyfills (Critical for React Native)
+
+Edit `index.ts`:
+
+```typescript
+// IMPORTANT: These MUST be imported FIRST, before anything else
+import 'react-native-get-random-values';
+import 'react-native-url-polyfill/auto';
+
+import { registerRootComponent } from 'expo';
+import App from './App';
+
+registerRootComponent(App);
+```
+
+**Why this is necessary**:
+- React Native doesn't provide `crypto.getRandomValues()` API
+- React Native doesn't provide `URL` API
+- Amplify Auth requires both of these
+- These polyfills provide JavaScript implementations
+
+### Step 8: Configure Amplify in Your App
+
+Edit `App.tsx`:
+
+```typescript
+import React from 'react';
+import { Amplify } from 'aws-amplify';
+import outputs from './amplify_outputs.json';
+
+// Configure Amplify with backend resources
+Amplify.configure(outputs);
+```
+
+**What `amplify_outputs.json` contains**:
+- Cognito User Pool ID and region
+- App Client ID
+- Identity Pool ID
+- AppSync API endpoint
+- Authorization settings
+
+### Step 9: Build Custom Auth UI
+
+Create authentication screens in `App.tsx`:
+
+```typescript
+import React from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
+import { Amplify } from 'aws-amplify';
+import { signIn, signUp, confirmSignUp, signOut, getCurrentUser } from '@aws-amplify/auth';
+import outputs from './amplify_outputs.json';
+
+Amplify.configure(outputs);
+
+type AuthScreen = 'signIn' | 'signUp' | 'confirmSignUp';
+
+const App = () => {
+  const [screen, setScreen] = React.useState<AuthScreen>('signIn');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [code, setCode] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [user, setUser] = React.useState<any>(null);
+
+  // Check if user is already signed in on app load
+  React.useEffect(() => {
+    checkUser();
+  }, []);
+
+  const checkUser = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    } catch {
+      setUser(null);
+    }
+  };
+
+  const handleSignUp = async () => {
+    setError('');
+    if (password !== confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+    setLoading(true);
+    try {
+      await signUp({
+        username: email.trim(),
+        password,
+        options: {
+          userAttributes: { email: email.trim() },
+        },
+      });
+      setScreen('confirmSignUp');
+    } catch (e: any) {
+      setError(e?.message || 'Sign up failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmSignUp = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await confirmSignUp({
+        username: email.trim(),
+        confirmationCode: code,
+      });
+      setScreen('signIn');
+      setCode('');
+    } catch (e: any) {
+      setError(e?.message || 'Confirmation failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await signIn({
+        username: email.trim(),
+        password,
+        // USER_PASSWORD_AUTH works in Expo Go
+        options: { authFlowType: 'USER_PASSWORD_AUTH' as const },
+      });
+      await checkUser();
+    } catch (e: any) {
+      setError(e?.message || 'Sign in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setUser(null);
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+    } catch (e: any) {
+      setError(e?.message || 'Sign out failed');
+    }
+  };
+
+  // Render authenticated user screen
+  if (user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centeredContent}>
+          <View style={styles.welcomeCard}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>
+                {user.username?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+            <Text style={styles.welcomeTitle}>Welcome Back!</Text>
+            <Text style={styles.userEmail}>{user.username}</Text>
+            <View style={styles.divider} />
+            <Text style={styles.statusText}>✓ Successfully authenticated</Text>
+            <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+              <Text style={styles.signOutButtonText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // Render authentication screens (sign in, sign up, verify)
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
+          <Text style={styles.title}>
+            {screen === 'signIn' && 'Sign In'}
+            {screen === 'signUp' && 'Create Account'}
+            {screen === 'confirmSignUp' && 'Verify Email'}
+          </Text>
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          {screen === 'confirmSignUp' ? (
+            <>
+              <Text style={styles.subtitle}>Enter the code sent to {email}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Verification code"
+                value={code}
+                onChangeText={setCode}
+                keyboardType="number-pad"
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleConfirmSignUp}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Verify</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setScreen('signIn')}>
+                <Text style={styles.link}>Back to Sign In</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+              {screen === 'signUp' && (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+              )}
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={screen === 'signIn' ? handleSignIn : handleSignUp}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>
+                    {screen === 'signIn' ? 'Sign In' : 'Sign Up'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setScreen(screen === 'signIn' ? 'signUp' : 'signIn')}
+              >
+                <Text style={styles.link}>
+                  {screen === 'signIn'
+                    ? "Don't have an account? Sign Up"
+                    : 'Already have an account? Sign In'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+};
+
+// Add styles (see full App.tsx for complete styles)
+const styles = StyleSheet.create({
+  // ... styles
+});
+
+export default App;
+```
+
+**Key Implementation Points**:
+- Three screens: Sign In, Sign Up, Verify Email
+- Form validation (password matching)
+- Loading states with spinners
+- Error handling with user-friendly messages
+- Session persistence (automatic via AsyncStorage)
+- Clean, modern UI with proper keyboard handling
+
+---
+
+## 5. Expo Go Compatibility
+
+### The Problem We Faced
+
+AWS Amplify's default authentication uses **SRP (Secure Remote Password)** protocol, which requires native cryptographic modules. These modules are **not available in Expo Go**, causing this error:
 
 ```
 The package '@aws-amplify/react-native' doesn't seem to be linked
 ```
 
-## ✅ Solutions Implemented
+### Our Solution: Four Key Changes
 
-### 1. Added Required Polyfills
+#### Change 1: Added Polyfills
 
-**File**: `index.ts`
-
-**What we added**:
+In `index.ts`:
 ```typescript
-import 'react-native-get-random-values';
-import 'react-native-url-polyfill/auto';
+import 'react-native-get-random-values';  // Crypto polyfill
+import 'react-native-url-polyfill/auto';  // URL API polyfill
 ```
 
-**Why**:
-- Amplify Auth needs `crypto.getRandomValues()` for generating random values
-- Amplify needs the `URL` API for parsing endpoints
-- React Native doesn't provide these by default
-- These polyfills provide JavaScript implementations
+**Why**: Provides JavaScript implementations of crypto and URL APIs that Amplify needs.
 
-**Dependencies added** (in `package.json`):
-```json
-{
-  "react-native-get-random-values": "^1.11.0",
-  "react-native-url-polyfill": "^3.0.0"
-}
-```
+#### Change 2: Changed Auth Flow
 
-### 2. Changed Auth Flow to USER_PASSWORD_AUTH
-
-**File**: `App.tsx`
-
-**What we changed**:
+In `App.tsx`:
 ```typescript
-// Before (doesn't work in Expo Go)
 await signIn({
   username: email,
-  password: password,
-  // Default: USER_SRP_AUTH (requires native modules)
-});
-
-// After (works in Expo Go)
-await signIn({
-  username: email,
-  password: password,
-  options: { authFlowType: "USER_PASSWORD_AUTH" as const },
-});
-```
-
-**Why**:
-- `USER_SRP_AUTH` (default) requires native crypto modules
-- `USER_PASSWORD_AUTH` is pure JavaScript, works in Expo Go
-- Password is sent over HTTPS (still secure in transit)
-- For production with native builds, switch back to `USER_SRP_AUTH`
-
-### 3. Enabled USER_PASSWORD_AUTH in Cognito
-
-**Where**: AWS Cognito Console → User Pools → App Clients
-
-**What we enabled**:
-- ✅ `ALLOW_USER_PASSWORD_AUTH`
-- ✅ `ALLOW_REFRESH_TOKEN_AUTH`
-
-**Why**:
-- Cognito app clients have auth flows disabled by default
-- Must explicitly enable `USER_PASSWORD_AUTH` flow
-- Without this, sign-in fails with "Unknown error occurred"
-
-**How to check**:
-1. Go to AWS Console → Cognito → User Pools
-2. Select your pool: `amplify-expoamplify-matt-sandbox-...`
-3. Click "App clients" → Your client
-4. Under "Authentication flows", verify both are checked
-
-### 4. Ensured No Client Secret
-
-**Where**: AWS Cognito Console → User Pools → App Clients
-
-**What we verified**:
-- ❌ "Generate client secret" is **OFF**
-
-**Why**:
-- Client secrets are for server-side apps
-- Mobile apps are "public clients" (can't securely store secrets)
-- If a secret exists, Amplify expects it in every request
-- This causes "Missing SECRET_HASH" errors
-
-### 5. Created Custom Auth UI
-
-**File**: `App.tsx`
-
-**What we replaced**:
-```typescript
-// Before (Amplify's built-in UI)
-import { Authenticator } from '@aws-amplify/ui-react-native';
-
-<Authenticator>
-  <App />
-</Authenticator>
-```
-
-**After (Custom implementation)**:
-```typescript
-// Custom sign-in, sign-up, and verification screens
-// Built with React Native components
-// Full control over UI and auth flow
-```
-
-**Why**:
-- `@aws-amplify/ui-react-native` Authenticator uses SRP by default
-- Has dependencies on native modules
-- Custom UI gives us full control over auth flow
-- Can explicitly use `USER_PASSWORD_AUTH`
-- Better UI/UX customization
-
-### 6. Added Required Dependencies
-
-**File**: `package.json`
-
-**Dependencies added**:
-```json
-{
-  "@aws-amplify/react-native": "^1.2.0",
-  "@react-native-async-storage/async-storage": "^2.2.0",
-  "@react-native-community/netinfo": "^11.4.1",
-  "react-native-get-random-values": "^1.11.0",
-  "react-native-url-polyfill": "^3.0.0"
-}
-```
-
-**Why each is needed**:
-- `@aws-amplify/react-native`: React Native specific utilities for Amplify
-- `@react-native-async-storage/async-storage`: Store auth tokens persistently
-- `@react-native-community/netinfo`: Detect network status for offline support
-- `react-native-get-random-values`: Crypto polyfill
-- `react-native-url-polyfill`: URL API polyfill
-
-## 📋 Complete Checklist
-
-To make Amplify Auth work in Expo Go, you need:
-
-- [x] Install polyfill packages (`react-native-get-random-values`, `react-native-url-polyfill`)
-- [x] Import polyfills at app entry point (`index.ts`)
-- [x] Use `USER_PASSWORD_AUTH` in all `signIn()` calls
-- [x] Enable `ALLOW_USER_PASSWORD_AUTH` in Cognito app client
-- [x] Enable `ALLOW_REFRESH_TOKEN_AUTH` in Cognito app client
-- [x] Ensure app client has NO client secret
-- [x] Install AsyncStorage for token persistence
-- [x] Install NetInfo for network detection
-
-## 🔄 Comparison: Before vs After
-
-### Before (Doesn't Work in Expo Go)
-
-```typescript
-// index.ts
-import { registerRootComponent } from 'expo';
-import App from './App';
-registerRootComponent(App);
-
-// App.tsx
-import { Authenticator } from '@aws-amplify/ui-react-native';
-
-<Authenticator>
-  <YourApp />
-</Authenticator>
-
-// Sign in (uses SRP by default)
-await signIn({ username, password });
-```
-
-**Result**: ❌ Error: "Package '@aws-amplify/react-native' doesn't seem to be linked"
-
-### After (Works in Expo Go)
-
-```typescript
-// index.ts
-import 'react-native-get-random-values';  // ← Added
-import 'react-native-url-polyfill/auto';  // ← Added
-import { registerRootComponent } from 'expo';
-import App from './App';
-registerRootComponent(App);
-
-// App.tsx
-// Custom auth UI with React Native components
-
-// Sign in with explicit auth flow
-await signIn({
-  username,
   password,
-  options: { authFlowType: "USER_PASSWORD_AUTH" }  // ← Added
+  options: { authFlowType: 'USER_PASSWORD_AUTH' }  // ← Key change
 });
 ```
 
-**Result**: ✅ Works perfectly in Expo Go
+**Comparison**:
+- **Default**: `USER_SRP_AUTH` (requires native modules, doesn't work in Expo Go)
+- **Changed to**: `USER_PASSWORD_AUTH` (pure JavaScript, works in Expo Go)
 
-## 🚀 For Production (Native Build)
+#### Change 3: Enabled in AWS Cognito
 
-When you create a native build (not Expo Go), you can switch back to the more secure SRP flow:
+**Steps to enable in AWS Console**:
+1. Navigate to AWS Console → Cognito → User Pools
+2. Select your user pool (name starts with `amplify-expoamplify-...`)
+3. Click "App clients" tab
+4. Click on your app client
+5. Under "Authentication flows", enable:
+   - ✅ `ALLOW_USER_PASSWORD_AUTH`
+   - ✅ `ALLOW_REFRESH_TOKEN_AUTH`
+6. Verify "Generate client secret" is **OFF** (must be public client for mobile)
+7. Click "Save changes"
 
-### 1. Create Native Build
-```bash
-npx expo prebuild
-npx expo run:ios
-# or
-npx expo run:android
-```
+**Why this is required**: Cognito app clients have auth flows disabled by default. You must explicitly enable the flows you want to use.
 
-### 2. Switch to SRP
-```typescript
-await signIn({
-  username: email,
-  password: password,
-  options: { authFlowType: "USER_SRP_AUTH" }  // More secure
-});
-```
+#### Change 4: Built Custom UI
 
-### 3. Update Cognito
-Enable `ALLOW_USER_SRP_AUTH` in your Cognito app client (in addition to or instead of `USER_PASSWORD_AUTH`).
+Instead of using `@aws-amplify/ui-react-native` Authenticator (which uses SRP and has native dependencies), we built custom screens with React Native components.
 
-## 🔒 Security Considerations
+**Benefits**:
+- Full control over UI/UX
+- Can explicitly specify auth flow
+- No native module dependencies
+- Works perfectly in Expo Go
 
-### USER_PASSWORD_AUTH
-- ✅ Works in Expo Go
+### Security Considerations
+
+**Development (Expo Go)**:
+- ✅ Uses `USER_PASSWORD_AUTH`
 - ✅ Password sent over HTTPS (encrypted in transit)
-- ⚠️ Password reaches AWS servers (even if encrypted)
 - ✅ Good for development and testing
-- ⚠️ Less secure than SRP for production
+- ⚠️ Password reaches AWS servers (even if encrypted)
 
-### USER_SRP_AUTH (Recommended for Production)
-- ❌ Doesn't work in Expo Go
+**Production (Native Build)**:
+- ✅ Use `USER_SRP_AUTH`
 - ✅ Password never leaves device
 - ✅ Zero-knowledge proof protocol
 - ✅ Most secure option
-- ✅ Requires native build
-
-## 📝 Summary
-
-| Change | File | Reason |
-|--------|------|--------|
-| Add polyfills | `index.ts` | Provide crypto and URL APIs |
-| Use USER_PASSWORD_AUTH | `App.tsx` | Avoid native module requirement |
-| Custom auth UI | `App.tsx` | Full control over auth flow |
-| Enable in Cognito | AWS Console | Allow password-based auth |
-| No client secret | AWS Console | Mobile apps are public clients |
-
-## 🎓 What We Learned
-
-1. **Expo Go has limitations** - It's a sandbox that doesn't include all native modules
-2. **Amplify is flexible** - Multiple auth flows available for different use cases
-3. **Polyfills are essential** - React Native needs JavaScript implementations of web APIs
-4. **Cognito is configurable** - Must explicitly enable auth flows you want to use
-5. **Custom UI gives control** - Sometimes better than pre-built components
-
-## 🔗 Related Documentation
-
-- [Amplify Auth for React Native](https://docs.amplify.aws/react-native/build-a-backend/auth/)
-- [Cognito User Pool Auth Flows](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html)
-- [Expo Go Limitations](https://docs.expo.dev/workflow/expo-go/)
-- [SRP Protocol](https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol)
+- ⚠️ Requires native build (not Expo Go)
 
 ---
 
-**Key Takeaway**: Expo Go is great for rapid development, but for production apps with full security, create a native build and use SRP authentication.
-# API Reference & Endpoints
+## 6. Testing & Debugging
 
-## 🔗 Your Deployed Resources
-
-### AppSync GraphQL API
-- **Endpoint**: `https://xwg4g6sgofewlg7dkufdvt2zpa.appsync-api.ap-southeast-1.amazonaws.com/graphql`
-- **Region**: `ap-southeast-1` (Singapore)
-- **Authorization**: Cognito User Pools (primary), AWS IAM (secondary)
-
-### Cognito User Pool
-- **User Pool ID**: `ap-southeast-1_qZi8VSvJa`
-- **App Client ID**: `5rup3ml2ev6h39vnk7i12pf46k`
-- **Identity Pool ID**: `ap-southeast-1:fe8fbd5a-1158-46a6-8d07-b7f878a93104`
-- **Region**: `ap-southeast-1`
-
-## 📍 Where to Find Your Resources
-
-### AWS Console
-
-1. **Cognito User Pool**
-   - Navigate to: AWS Console → Cognito → User Pools
-   - Pool Name: `amplify-expoamplify-matt-sandbox-07de79615d`
-   - View users, app clients, and settings
-
-2. **AppSync API**
-   - Navigate to: AWS Console → AppSync → APIs
-   - API Name: Your sandbox API
-   - View schema, queries, and data sources
-
-3. **DynamoDB Tables**
-   - Navigate to: AWS Console → DynamoDB → Tables
-   - Tables are auto-created for each model in your schema
-   - Example: `Todo-<random-id>` table
-
-### Local Configuration
-
-All endpoints and IDs are in `amplify_outputs.json`:
+### Step 10: Start Development Server
 
 ```bash
-# View all config
-cat amplify_outputs.json | jq
+# In a new terminal (sandbox should still be running in terminal 1)
+npx expo start
+```
 
-# Get API endpoint
-cat amplify_outputs.json | jq -r '.data.url'
+### Step 11: Test on Device
 
-# Get User Pool ID
+1. Open Expo Go app on your phone
+2. Scan the QR code from the terminal
+3. App loads on your device
+
+### Step 12: Test Authentication Flow
+
+**Test Sign Up**:
+1. Tap "Don't have an account? Sign Up"
+2. Enter email and password (must meet password policy)
+3. Confirm password
+4. Tap "Sign Up"
+5. Check your email for verification code
+6. Enter the 6-digit code
+7. Tap "Verify"
+8. Redirected to sign-in screen
+
+**Test Sign In**:
+1. Enter the same email and password
+2. Tap "Sign In"
+3. See welcome screen with your email
+
+**Test Sign Out**:
+1. Tap "Sign Out" button
+2. Return to sign-in screen
+3. Session cleared
+
+**Test Session Persistence**:
+1. Sign in
+2. Close the app completely
+3. Reopen the app
+4. Should still be signed in (session restored)
+
+### Viewing Backend Resources
+
+**Check your configuration**:
+```bash
+# View User Pool ID
 cat amplify_outputs.json | jq -r '.auth.user_pool_id'
 
-# Get App Client ID
+# View App Client ID
 cat amplify_outputs.json | jq -r '.auth.user_pool_client_id'
+
+# View API Endpoint
+cat amplify_outputs.json | jq -r '.data.url'
+
+# View Region
+cat amplify_outputs.json | jq -r '.auth.aws_region'
 ```
 
-## 🔐 Authentication Endpoints
+**View users in AWS Console**:
+1. Go to AWS Console → Cognito
+2. Click "User Pools"
+3. Select your pool (starts with `amplify-expoamplify-...`)
+4. Click "Users" tab
+5. See all registered users, their email, and verification status
 
-### Sign Up
+**View API in AWS Console**:
+1. Go to AWS Console → AppSync
+2. Click "APIs"
+3. Select your API
+4. View schema, queries, and test in the console
+
+### Common Issues & Solutions
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "Unknown error occurred" after OTP | Auth flow not enabled in Cognito | Enable `ALLOW_USER_PASSWORD_AUTH` in app client settings |
+| "Package not linked" error | Using SRP in Expo Go | Already fixed - we use `USER_PASSWORD_AUTH` |
+| "Missing SECRET_HASH" error | App client has client secret | Ensure "Generate client secret" is OFF in Cognito |
+| Backend changes not showing | Sandbox not running or not deployed | Restart sandbox, wait for deployment, then restart Expo with `-c` flag |
+| Session not persisting | AsyncStorage not configured | Already handled - `@react-native-async-storage/async-storage` installed |
+| Password policy error | Password doesn't meet requirements | Min 8 chars, must have uppercase, lowercase, number, symbol |
+
+### Debugging Tips
+
+**Enable verbose logging**:
 ```typescript
-import { signUp } from '@aws-amplify/auth';
-
-await signUp({
-  username: 'user@example.com',
-  password: 'SecurePass123!',
-  options: {
-    userAttributes: {
-      email: 'user@example.com'
-    }
-  }
-});
+// Add to App.tsx for debugging
+console.log('Auth state:', { user, screen, email });
 ```
 
-### Confirm Sign Up
-```typescript
-import { confirmSignUp } from '@aws-amplify/auth';
+**Check sandbox logs**:
+- Watch the terminal where sandbox is running
+- Shows deployment status and errors
 
-await confirmSignUp({
-  username: 'user@example.com',
-  confirmationCode: '123456'
-});
+**Clear Metro cache**:
+```bash
+npx expo start -c
 ```
 
-### Sign In
-```typescript
-import { signIn } from '@aws-amplify/auth';
+---
 
+## 7. Deployment
+
+### For Production
+
+#### Step 13: Create Native Build
+
+```bash
+# Generate native iOS and Android projects
+npx expo prebuild
+
+# Run on iOS
+npx expo run:ios
+
+# Run on Android
+npx expo run:android
+```
+
+**Why create a native build**:
+- Access to all native modules
+- Can use more secure `USER_SRP_AUTH` flow
+- Better performance
+- Required for App Store/Play Store submission
+
+#### Step 14: Switch to SRP (Recommended for Production)
+
+In `App.tsx`, change the auth flow:
+```typescript
 await signIn({
-  username: 'user@example.com',
-  password: 'SecurePass123!',
-  options: {
-    authFlowType: 'USER_PASSWORD_AUTH' // For Expo Go
-  }
+  username: email,
+  password,
+  options: { authFlowType: 'USER_SRP_AUTH' }  // More secure
 });
 ```
 
-### Sign Out
-```typescript
-import { signOut } from '@aws-amplify/auth';
+**Enable in Cognito**:
+1. AWS Console → Cognito → User Pools → App clients
+2. Enable `ALLOW_USER_SRP_AUTH`
+3. Keep `ALLOW_REFRESH_TOKEN_AUTH` enabled
+4. Save changes
 
-await signOut();
+#### Step 15: Deploy Backend to Production
+
+```bash
+# Deploy via Amplify pipeline
+npx ampx pipeline-deploy --branch main --app-id <your-amplify-app-id>
 ```
 
-### Get Current User
+**Production deployment creates**:
+- Persistent backend (not temporary like sandbox)
+- Production-grade infrastructure
+- Separate environments (dev, staging, prod)
+
+---
+
+## 8. API Usage
+
+### Authentication APIs
+
+**Get Current User**:
 ```typescript
 import { getCurrentUser } from '@aws-amplify/auth';
 
 const user = await getCurrentUser();
-console.log(user.username, user.userId);
+console.log('User ID:', user.userId);
+console.log('Username:', user.username);
 ```
 
-## 📊 Data API (GraphQL)
+**Get Auth Session & Tokens**:
+```typescript
+import { fetchAuthSession } from '@aws-amplify/auth';
 
-### Schema (from `amplify/data/resource.ts`)
+const session = await fetchAuthSession();
+const idToken = session.tokens?.idToken?.toString();
+const accessToken = session.tokens?.accessToken?.toString();
+const refreshToken = session.tokens?.refreshToken?.toString();
 
-```graphql
-type Todo @model @auth(rules: [{ allow: public, provider: iam }]) {
-  id: ID!
-  content: String
-  createdAt: AWSDateTime
-  updatedAt: AWSDateTime
-}
+console.log('ID Token:', idToken);
 ```
 
-### Using the Data Client
+**Sign Out**:
+```typescript
+import { signOut } from '@aws-amplify/auth';
 
+// Sign out from current device
+await signOut();
+
+// Sign out from all devices
+await signOut({ global: true });
+```
+
+### GraphQL API (Data)
+
+**Using Generated Client**:
 ```typescript
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from './amplify/data/resource';
@@ -520,7 +750,7 @@ import type { Schema } from './amplify/data/resource';
 const client = generateClient<Schema>();
 
 // Create a todo
-const { data: newTodo } = await client.models.Todo.create({
+const { data: newTodo, errors } = await client.models.Todo.create({
   content: 'Buy groceries'
 });
 
@@ -528,22 +758,23 @@ const { data: newTodo } = await client.models.Todo.create({
 const { data: todos } = await client.models.Todo.list();
 
 // Get a specific todo
-const { data: todo } = await client.models.Todo.get({ id: 'todo-id' });
+const { data: todo } = await client.models.Todo.get({
+  id: 'todo-id-here'
+});
 
 // Update a todo
 const { data: updatedTodo } = await client.models.Todo.update({
-  id: 'todo-id',
+  id: 'todo-id-here',
   content: 'Buy groceries and cook dinner'
 });
 
 // Delete a todo
-await client.models.Todo.delete({ id: 'todo-id' });
+await client.models.Todo.delete({
+  id: 'todo-id-here'
+});
 ```
 
-### Direct GraphQL Queries
-
-If you prefer raw GraphQL:
-
+**Using Raw GraphQL**:
 ```typescript
 import { generateClient } from 'aws-amplify/api';
 
@@ -582,169 +813,128 @@ const createResult = await client.graphql({
 });
 ```
 
-## 🧪 Testing Your API
+### Finding Your Endpoints
 
-### Using AWS AppSync Console
-
-1. Go to AWS Console → AppSync → Your API
-2. Click "Queries" in the left sidebar
-3. Run test queries:
-
-```graphql
-# Create a todo
-mutation CreateTodo {
-  createTodo(input: { content: "Test todo" }) {
-    id
-    content
-    createdAt
-  }
-}
-
-# List todos
-query ListTodos {
-  listTodos {
-    items {
-      id
-      content
-      createdAt
-    }
-  }
-}
-```
-
-### Using cURL
+All configuration is in `amplify_outputs.json` (auto-generated, don't commit to git):
 
 ```bash
-# Get your API endpoint
-API_ENDPOINT="https://xwg4g6sgofewlg7dkufdvt2zpa.appsync-api.ap-southeast-1.amazonaws.com/graphql"
+# View all config (formatted)
+cat amplify_outputs.json | jq
 
-# You'll need an API key or auth token
-# For IAM auth, use AWS signature v4
-
-# Example with API key (if you add one)
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -d '{"query":"query { listTodos { items { id content } } }"}' \
-  $API_ENDPOINT
+# Get specific values
+cat amplify_outputs.json | jq -r '.auth.user_pool_id'
+cat amplify_outputs.json | jq -r '.auth.user_pool_client_id'
+cat amplify_outputs.json | jq -r '.auth.identity_pool_id'
+cat amplify_outputs.json | jq -r '.data.url'
+cat amplify_outputs.json | jq -r '.auth.aws_region'
 ```
 
-### Using Postman
-
-1. Create a new POST request
-2. URL: `https://xwg4g6sgofewlg7dkufdvt2zpa.appsync-api.ap-southeast-1.amazonaws.com/graphql`
-3. Headers:
-   - `Content-Type: application/json`
-   - `Authorization: <your-cognito-token>` (get from app after sign-in)
-4. Body (raw JSON):
-```json
-{
-  "query": "query { listTodos { items { id content } } }"
-}
-```
-
-## 🔍 Viewing Data in AWS Console
-
-### DynamoDB Tables
-
-1. Go to AWS Console → DynamoDB → Tables
-2. Find your table (e.g., `Todo-<random-id>`)
-3. Click "Explore table items"
-4. View, edit, or delete items directly
-
-### Cognito Users
-
-1. Go to AWS Console → Cognito → User Pools
-2. Select your pool: `amplify-expoamplify-matt-sandbox-07de79615d`
-3. Click "Users" tab
-4. See all registered users, their status, and attributes
-
-## 📱 Getting Auth Tokens in Your App
-
-```typescript
-import { fetchAuthSession } from '@aws-amplify/auth';
-
-// Get current session with tokens
-const session = await fetchAuthSession();
-
-console.log('ID Token:', session.tokens?.idToken?.toString());
-console.log('Access Token:', session.tokens?.accessToken?.toString());
-console.log('Refresh Token:', session.tokens?.refreshToken?.toString());
-
-// Use the ID token for AppSync requests
-const idToken = session.tokens?.idToken?.toString();
-
-// Make authenticated GraphQL request
-const response = await fetch(
-  'https://xwg4g6sgofewlg7dkufdvt2zpa.appsync-api.ap-southeast-1.amazonaws.com/graphql',
-  {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': idToken || ''
-    },
-    body: JSON.stringify({
-      query: 'query { listTodos { items { id content } } }'
-    })
-  }
-);
-```
-
-## 🛠️ Modifying Your Schema
-
-### Add a New Model
-
-Edit `amplify/data/resource.ts`:
-
-```typescript
-const schema = a.schema({
-  Todo: a
-    .model({
-      content: a.string(),
-    })
-    .authorization((allow) => [allow.publicApiKey()]),
-  
-  // Add new model
-  Note: a
-    .model({
-      title: a.string().required(),
-      body: a.string(),
-      userId: a.string().required(),
-    })
-    .authorization((allow) => [
-      allow.owner(), // Only owner can CRUD
-    ]),
-});
-```
-
-### Deploy Changes
-
-The sandbox auto-deploys when you save:
-
-```bash
-# If sandbox is running, it will detect changes
-# Otherwise, start it:
-npx ampx sandbox --profile admin-golong
-
-# Wait for: "✔ Deployment completed"
-# New amplify_outputs.json will be generated
-```
-
-## 📚 Additional Resources
-
-- **Amplify Data Docs**: https://docs.amplify.aws/react-native/build-a-backend/data/
-- **GraphQL API Docs**: https://docs.amplify.aws/react-native/build-a-backend/data/query-data/
-- **Auth Docs**: https://docs.amplify.aws/react-native/build-a-backend/auth/
-- **AppSync Docs**: https://docs.aws.amazon.com/appsync/
-- **Cognito Docs**: https://docs.aws.amazon.com/cognito/
-
-## 🚨 Important Notes
-
-1. **Sandbox is for development only** - Data is deleted when sandbox is stopped
-2. **User data persists** - Cognito users remain until manually deleted
-3. **API endpoint changes** - If you recreate the sandbox, the endpoint URL will change
-4. **Authorization** - Current setup uses IAM for public access; consider using Cognito User Pools for production
+**AWS Console Locations**:
+- **Users**: Cognito → User Pools → Your pool → Users tab
+- **API**: AppSync → APIs → Your API → Queries
+- **Tables**: DynamoDB → Tables → Your table → Items
 
 ---
 
-**Last Updated**: Based on sandbox deployment at 12:54:03 PM, 2025-09-30
+## Project Structure
+
+```
+expo-amplify/
+├── App.tsx                      # Main app with custom auth UI
+├── index.ts                     # Entry point with polyfills
+├── amplify_outputs.json         # Auto-generated config (gitignored)
+├── amplify/
+│   ├── backend.ts              # Backend definition
+│   ├── auth/
+│   │   └── resource.ts         # Cognito auth configuration
+│   └── data/
+│       └── resource.ts         # GraphQL API schema
+├── package.json                 # Dependencies
+├── tsconfig.json               # TypeScript config
+├── .gitignore                  # Git ignore (includes amplify_outputs.json)
+└── README.md                   # Project documentation
+```
+
+---
+
+## Key Takeaways
+
+### What We Learned
+
+1. **Expo Go has limitations** - Not all native modules are available in the sandbox environment
+2. **Amplify is flexible** - Provides multiple auth flows for different use cases
+3. **Polyfills are essential** - React Native needs JavaScript implementations of web APIs
+4. **Cognito is configurable** - Must explicitly enable auth flows in app client settings
+5. **Custom UI gives control** - Sometimes better than pre-built components for specific requirements
+6. **Security matters** - Choose auth flow based on environment (dev vs prod)
+
+### Best Practices
+
+- ✅ Use `USER_PASSWORD_AUTH` for Expo Go development
+- ✅ Switch to `USER_SRP_AUTH` for production native builds
+- ✅ Keep sandbox running during active development
+- ✅ Use `amplify_outputs.json` for all configuration (never hardcode)
+- ✅ Add `amplify_outputs.json` to `.gitignore`
+- ✅ Never commit AWS credentials or sensitive IDs to version control
+- ✅ Test authentication flows thoroughly before production
+- ✅ Handle errors gracefully with user-friendly messages
+- ✅ Implement proper loading states for better UX
+- ✅ Use TypeScript for type safety
+
+### Security Best Practices
+
+**Auth Flow Comparison**:
+
+| Feature | USER_PASSWORD_AUTH | USER_SRP_AUTH |
+|---------|-------------------|---------------|
+| Expo Go Support | ✅ Yes | ❌ No (requires native) |
+| Password Security | ⚠️ Sent over HTTPS | ✅ Never leaves device |
+| Implementation | Simple | Moderate |
+| Best For | Development/Testing | Production |
+| Setup Time | Fast | Requires native build |
+
+**Recommendations**:
+- Development: Use `USER_PASSWORD_AUTH` in Expo Go
+- Production: Use `USER_SRP_AUTH` with native build
+- Always use HTTPS (handled automatically by Amplify)
+- Enable MFA for sensitive applications
+- Implement proper session timeout
+- Use refresh tokens appropriately
+
+---
+
+## Additional Resources
+
+### Official Documentation
+
+- [AWS Amplify for React Native](https://docs.amplify.aws/react-native/) - Main documentation
+- [Amplify Authentication](https://docs.amplify.aws/react-native/build-a-backend/auth/) - Auth setup and usage
+- [Amplify Data (GraphQL)](https://docs.amplify.aws/react-native/build-a-backend/data/) - Data API and GraphQL
+- [Amazon Cognito](https://docs.aws.amazon.com/cognito/) - Cognito User Pools documentation
+- [AWS AppSync](https://docs.aws.amazon.com/appsync/) - GraphQL API documentation
+- [Expo Documentation](https://docs.expo.dev/) - Expo framework docs
+- [React Native](https://reactnative.dev/) - React Native docs
+
+### Related Project Files
+
+- `README.md` - Quick overview and setup instructions
+- `API_REFERENCE.md` - Detailed API endpoints and usage examples
+- `CHANGES_FOR_EXPO_GO.md` - Technical details of Expo Go modifications
+- `QUICK_START.md` - 5-minute quick start guide
+
+### Community & Support
+
+- [Amplify Discord](https://discord.gg/amplify) - Community support
+- [Amplify GitHub](https://github.com/aws-amplify) - Source code and issues
+- [Expo Forums](https://forums.expo.dev/) - Expo community
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/aws-amplify) - Q&A
+
+---
+
+## License
+
+MIT
+
+---
+
+**Built with ❤️ using Expo and AWS Amplify Gen 2**

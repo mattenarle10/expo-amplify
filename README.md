@@ -93,8 +93,7 @@ cat amplify_outputs.json | grep '"url"'
 ## Documentation
 
 - **Detailed Guide**: See `DEVELOPER_GUIDE.md` for comprehensive documentation
-- **API Reference**: See `API_REFERENCE.md` for endpoints and usage
-- **Quick Start**: See `QUICK_START.md` for 5-minute setup
+
 
 ## 📖 Learn More
 
