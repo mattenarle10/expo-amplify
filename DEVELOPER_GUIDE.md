@@ -903,7 +903,6 @@ expo-amplify/
 
 ---
 
-## Additional Resources
 
 ### Official Documentation
 
