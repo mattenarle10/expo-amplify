@@ -1,6 +1,6 @@
-# Expo + AWS Amplify Authentication
+# Seamless Auth in Expo Go: Powered by AWS Amplify Gen 2
 
-A React Native mobile app with email authentication, built with Expo and AWS Amplify Gen 2.
+A React Native mobile app with email authentication, built with Expo and AWS Amplify Gen 2. 👾
 
 ## Features
 
