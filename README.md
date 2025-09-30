@@ -2,15 +2,14 @@
 
 A React Native mobile app with email authentication, built with Expo and AWS Amplify Gen 2.
 
-## ✨ Features
+## Features
 
 - Email/password sign up with OTP verification
 - User sign in and sign out
 - Session persistence
-- Custom UI (no external UI library)
 - Works in Expo Go
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: React Native + Expo + TypeScript
 - **Backend**: AWS Amplify Gen 2
@@ -23,10 +22,10 @@ A React Native mobile app with email authentication, built with Expo and AWS Amp
 # Install dependencies
 npm install
 
-# Start Amplify backend (terminal 1)
+# Start Amplify backend 
 npx ampx sandbox --profile <your-aws-profile>
 
-# Start Expo (terminal 2)
+# Start Expo 
 npx expo start
 
 # Scan QR code with Expo Go app
@@ -44,7 +43,7 @@ expo-amplify/
 └── amplify_outputs.json    # Auto-generated config
 ```
 
-## 🔑 Key Changes for Expo Go
+## Key Changes for Expo Go
 
 Amplify's default auth uses SRP (requires native modules). We modified it to work in Expo Go:
 
@@ -69,7 +68,7 @@ Amplify's default auth uses SRP (requires native modules). We modified it to wor
 
 > **For production**: Use a native build with `USER_SRP_AUTH` for better security.
 
-## 📍 View Your Resources
+## View Your Resources
 
 ```bash
 # User Pool ID
@@ -83,7 +82,7 @@ cat amplify_outputs.json | grep '"url"'
 - **Users**: Cognito → User Pools → Your pool → Users tab
 - **API**: AppSync → APIs → Your API
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
@@ -91,7 +90,7 @@ cat amplify_outputs.json | grep '"url"'
 | Backend changes not showing | Restart sandbox and Expo with `npx expo start -c` |
 | Session not persisting | Already handled with AsyncStorage |
 
-## 📚 Documentation
+## Documentation
 
 - **Detailed Guide**: See `DEVELOPER_GUIDE.md` for comprehensive documentation
 - **API Reference**: See `API_REFERENCE.md` for endpoints and usage
@@ -103,11 +102,6 @@ cat amplify_outputs.json | grep '"url"'
 - [Amplify Auth](https://docs.amplify.aws/react-native/build-a-backend/auth/)
 - [Expo Documentation](https://docs.expo.dev/)
 
-## 📄 License
-
-MIT
-
----
 
 **Built with Expo and AWS Amplify Gen 2**
 ***Demo by Matthew Enarle***
