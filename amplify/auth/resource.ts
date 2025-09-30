@@ -1,4 +1,5 @@
 import { defineAuth } from '@aws-amplify/backend';
+import { postConfirmation } from './post-confirmation/resource';
 
 /**
  * Define and configure your auth resource
@@ -8,10 +9,16 @@ export const auth = defineAuth({
   loginWith: {
     email: true,
   },
-  // Enable USER_PASSWORD_AUTH for Expo Go compatibility (SRP requires native modules)
   userAttributes: {
     email: {
       required: true,
     },
+    preferredUsername: {
+      required: true,
+      mutable: true,
+    },
+  },
+  triggers: {
+    postConfirmation,
   },
 });

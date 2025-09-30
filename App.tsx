@@ -11,11 +11,17 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Amplify } from "aws-amplify";
-import { signIn, signUp, confirmSignUp, signOut, getCurrentUser } from "@aws-amplify/auth";
+import { signIn, signUp, confirmSignUp, signOut, getCurrentUser, fetchUserAttributes } from "@aws-amplify/auth";
+import { generateClient } from "aws-amplify/data";
+import type { Schema } from "./amplify/data/resource";
+import Toast from "react-native-toast-message";
 import outputs from "./amplify_outputs.json";
 
 // Configure Amplify with backend resources (Cognito, AppSync, etc.)
 Amplify.configure(outputs);
+
+// Create data client for DynamoDB operations
+const client = generateClient<Schema>();
 
 // Define the possible authentication screens
 type AuthScreen = "signIn" | "signUp" | "confirmSignUp";
@@ -23,6 +29,7 @@ type AuthScreen = "signIn" | "signUp" | "confirmSignUp";
 const App = () => {
   const [screen, setScreen] = React.useState<AuthScreen>("signIn");
   const [email, setEmail] = React.useState("");
+  const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [code, setCode] = React.useState("");
@@ -35,13 +42,52 @@ const App = () => {
     checkUser();
   }, []);
 
-  // Check current authentication status
+  // Check current authentication status and create profile if needed
   const checkUser = async () => {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
+      
+      // Try to get or create user profile in DynamoDB
+      await getOrCreateUserProfile(currentUser.userId);
     } catch {
       setUser(null);
+    }
+  };
+
+  // Get or create user profile in DynamoDB
+  const getOrCreateUserProfile = async (userId: string) => {
+    try {
+      // Try to get existing profile
+      const { data: existingProfile } = await client.models.UserProfile.get({ userId });
+      
+      if (!existingProfile) {
+        // Profile doesn't exist, create it
+        const userAttributes = await fetchUserAttributes();
+        const email = userAttributes.email || '';
+        const username = userAttributes.preferred_username || email.split('@')[0];
+        
+        console.log('Creating user profile:', { userId, email, username });
+        
+        await client.models.UserProfile.create({
+          userId,
+          email,
+          username,
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+        });
+        
+        console.log('User profile created successfully');
+      } else {
+        // Update last login time
+        await client.models.UserProfile.update({
+          userId,
+          lastLoginAt: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error('Error managing user profile:', error);
+      // Don't fail sign-in if profile management fails
     }
   };
 
@@ -58,8 +104,20 @@ const App = () => {
         options: { authFlowType: "USER_PASSWORD_AUTH" as const },
       });
       await checkUser();
+      Toast.show({
+        type: 'success',
+        text1: 'Welcome Back!',
+        text2: 'Successfully signed in',
+        position: 'top',
+      });
     } catch (e: any) {
       setError(e?.message || "Sign in failed");
+      Toast.show({
+        type: 'error',
+        text1: 'Sign In Failed',
+        text2: e?.message || 'Please check your credentials',
+        position: 'top',
+      });
     } finally {
       setLoading(false);
     }
@@ -70,6 +128,12 @@ const App = () => {
     setError("");
     if (password !== confirmPassword) {
       setError("Passwords don't match");
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: "Passwords don't match",
+        position: 'top',
+      });
       return;
     }
     setLoading(true);
@@ -78,12 +142,27 @@ const App = () => {
         username: email.trim(),
         password,
         options: {
-          userAttributes: { email: email.trim() },
+          userAttributes: {
+            email: email.trim(),
+            preferred_username: username.trim(),
+          },
         },
       });
       setScreen("confirmSignUp");
+      Toast.show({
+        type: 'success',
+        text1: 'Account Created!',
+        text2: 'Check your email for verification code',
+        position: 'top',
+      });
     } catch (e: any) {
       setError(e?.message || "Sign up failed");
+      Toast.show({
+        type: 'error',
+        text1: 'Sign Up Failed',
+        text2: e?.message || 'Please try again',
+        position: 'top',
+      });
     } finally {
       setLoading(false);
     }
@@ -97,8 +176,20 @@ const App = () => {
       await confirmSignUp({ username: email.trim(), confirmationCode: code });
       setScreen("signIn");
       setCode("");
+      Toast.show({
+        type: 'success',
+        text1: 'Email Verified!',
+        text2: 'You can now sign in',
+        position: 'top',
+      });
     } catch (e: any) {
       setError(e?.message || "Confirmation failed");
+      Toast.show({
+        type: 'error',
+        text1: 'Verification Failed',
+        text2: e?.message || 'Invalid code',
+        position: 'top',
+      });
     } finally {
       setLoading(false);
     }
@@ -110,10 +201,23 @@ const App = () => {
       await signOut();
       setUser(null);
       setEmail("");
+      setUsername("");
       setPassword("");
       setConfirmPassword("");
+      Toast.show({
+        type: 'success',
+        text1: 'Signed Out',
+        text2: 'You have been successfully signed out',
+        position: 'top',
+      });
     } catch (e: any) {
       setError(e?.message || "Sign out failed");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: e?.message || 'Sign out failed',
+        position: 'top',
+      });
     }
   };
 
@@ -138,6 +242,7 @@ const App = () => {
             </TouchableOpacity>
           </View>
         </View>
+        <Toast />
       </View>
     );
   }
@@ -188,6 +293,16 @@ const App = () => {
             </>
           ) : (
             <>
+              {screen === "signUp" && (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Username"
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              )}
               <TextInput
                 style={styles.input}
                 placeholder="Email"
@@ -243,6 +358,7 @@ const App = () => {
           )}
         </View>
       </ScrollView>
+      <Toast />
     </KeyboardAvoidingView>
   );
 };
