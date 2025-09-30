@@ -36,6 +36,7 @@ const App = () => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const [user, setUser] = React.useState<any>(null);
+  const [userProfile, setUserProfile] = React.useState<any>(null);
 
   // Check if user is already signed in on app load
   React.useEffect(() => {
@@ -85,9 +86,12 @@ const App = () => {
           console.error('Error creating profile:', createErrors);
         } else {
           console.log('User profile created successfully:', newProfile);
+          setUserProfile(newProfile); // Store profile in state
         }
       } else {
         console.log('Profile exists, updating last login');
+        setUserProfile(existingProfile); // Store existing profile in state
+        
         // Update last login time
         const { errors: updateErrors } = await client.models.UserProfile.update({
           userId,
@@ -213,6 +217,7 @@ const App = () => {
     try {
       await signOut();
       setUser(null);
+      setUserProfile(null);
       setEmail("");
       setUsername("");
       setPassword("");
@@ -236,18 +241,24 @@ const App = () => {
 
   // Authenticated user screen
   if (user) {
+    const displayName = userProfile?.username || user.username || 'User';
+    const displayEmail = userProfile?.email || user.username || '';
+    
     return (
       <View style={styles.container}>
         <View style={styles.centeredContent}>
           <View style={styles.welcomeCard}>
-            {/* User avatar with first letter */}
+            {/* User avatar with first letter of username */}
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarText}>
-                {user.username?.charAt(0).toUpperCase() || "U"}
+                {displayName.charAt(0).toUpperCase()}
               </Text>
             </View>
-            <Text style={styles.welcomeTitle}>Welcome Back!</Text>
-            <Text style={styles.userEmail}>{user.username}</Text>
+            <Text style={styles.welcomeTitle}>Hello, {displayName}!</Text>
+            <Text style={styles.welcomeSubtitle}>
+              Thanks for trying out my Expo Auth demo!
+            </Text>
+            <Text style={styles.userEmail}>{displayEmail}</Text>
             <View style={styles.divider} />
             <Text style={styles.statusText}>✓ Successfully authenticated</Text>
             <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
@@ -420,9 +431,16 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 8,
   },
-  userEmail: {
+  welcomeSubtitle: {
     fontSize: 16,
     color: "#666",
+    textAlign: "center",
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: "#999",
     marginBottom: 24,
   },
   divider: {
