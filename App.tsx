@@ -59,7 +59,11 @@ const App = () => {
   const getOrCreateUserProfile = async (userId: string) => {
     try {
       // Try to get existing profile
-      const { data: existingProfile } = await client.models.UserProfile.get({ userId });
+      const { data: existingProfile, errors: getErrors } = await client.models.UserProfile.get({ userId });
+      
+      if (getErrors) {
+        console.log('Error getting profile (might not exist yet):', getErrors);
+      }
       
       if (!existingProfile) {
         // Profile doesn't exist, create it
@@ -69,7 +73,7 @@ const App = () => {
         
         console.log('Creating user profile:', { userId, email, username });
         
-        await client.models.UserProfile.create({
+        const { data: newProfile, errors: createErrors } = await client.models.UserProfile.create({
           userId,
           email,
           username,
@@ -77,13 +81,22 @@ const App = () => {
           lastLoginAt: new Date().toISOString(),
         });
         
-        console.log('User profile created successfully');
+        if (createErrors) {
+          console.error('Error creating profile:', createErrors);
+        } else {
+          console.log('User profile created successfully:', newProfile);
+        }
       } else {
+        console.log('Profile exists, updating last login');
         // Update last login time
-        await client.models.UserProfile.update({
+        const { errors: updateErrors } = await client.models.UserProfile.update({
           userId,
           lastLoginAt: new Date().toISOString(),
         });
+        
+        if (updateErrors) {
+          console.error('Error updating profile:', updateErrors);
+        }
       }
     } catch (error) {
       console.error('Error managing user profile:', error);

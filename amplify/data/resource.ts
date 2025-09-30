@@ -12,8 +12,8 @@ const schema = a.schema({
       lastLoginAt: a.datetime(),
     })
     .authorization((allow) => [
-      allow.owner().to(['read', 'update']),
-      allow.authenticated().to(['read']),
+      // Allow authenticated users to create and read their own profile
+      allow.authenticated().to(['create', 'read', 'update', 'delete']),
     ])
     .identifier(['userId']),
 });
