@@ -863,10 +863,9 @@ expo-amplify/
 
 1. **Expo Go has limitations** - Not all native modules are available in the sandbox environment
 2. **Amplify is flexible** - Provides multiple auth flows for different use cases
-3. **Polyfills are essential** - React Native needs JavaScript implementations of web APIs
-4. **Cognito is configurable** - Must explicitly enable auth flows in app client settings
-5. **Custom UI gives control** - Sometimes better than pre-built components for specific requirements
-6. **Security matters** - Choose auth flow based on environment (dev vs prod)
+3. **Cognito is configurable** - Must explicitly enable auth flows in app client settings
+4. **Custom UI gives control** - Sometimes better than pre-built components for specific requirements
+5. **Security matters** - Choose auth flow based on environment (dev vs prod)
 
 ### Best Practices
 

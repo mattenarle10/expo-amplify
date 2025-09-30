@@ -15,6 +15,7 @@ A React Native mobile app with email authentication, built with Expo and AWS Amp
 - **Backend**: AWS Amplify Gen 2
 - **Auth**: Amazon Cognito
 - **API**: AWS AppSync GraphQL
+- **Storage**: AWS DynamoDB
 
 ## 🚀 Quick Start
 
@@ -35,11 +36,17 @@ npx expo start
 
 ```
 expo-amplify/
-├── App.tsx                 # Main app with auth UI
-├── index.ts                # Entry point with polyfills
+├── app/(app)/home.tsx           # Expo Router app directory
+├── app/(auth)                   # Auth routes
+├── app/(auth)/sign-in.tsx       # Sign in page
+├── app/(auth)/sign-up.tsx       # Sign up page
+├── index.ts             
 ├── amplify/
 │   ├── auth/resource.ts    # Cognito configuration
+│   ├── auth/post-confirmation/handler.ts  
+│   ├── auth/post-confirmation/resource.ts 
 │   └── data/resource.ts    # GraphQL schema
+│   └── backend.ts          # Backend configuration
 └── amplify_outputs.json    # Auto-generated config
 ```
 
@@ -47,13 +54,8 @@ expo-amplify/
 
 Amplify's default auth uses SRP (requires native modules). We modified it to work in Expo Go:
 
-1. **Added polyfills** (`index.ts`):
-   ```typescript
-   import 'react-native-get-random-values';
-   import 'react-native-url-polyfill/auto';
-   ```
 
-2. **Changed auth flow** to `USER_PASSWORD_AUTH`:
+1. **Changed auth flow** to `USER_PASSWORD_AUTH`:
    ```typescript
    await signIn({
      username: email,
@@ -62,9 +64,9 @@ Amplify's default auth uses SRP (requires native modules). We modified it to wor
    });
    ```
 
-3. **Enabled in Cognito**: AWS Console → Cognito → App clients → Enable `ALLOW_USER_PASSWORD_AUTH`
+2. **Enabled in Cognito**: AWS Console → Cognito → App clients → Enable `ALLOW_USER_PASSWORD_AUTH`
 
-4. **Custom UI**: Built with React Native components instead of Amplify Authenticator
+3. **Custom UI**: Built with React Native components and Expo Router instead of Amplify Authenticator
 
 > **For production**: Use a native build with `USER_SRP_AUTH` for better security.
 
@@ -81,14 +83,7 @@ cat amplify_outputs.json | grep '"url"'
 **AWS Console**:
 - **Users**: Cognito → User Pools → Your pool → Users tab
 - **API**: AppSync → APIs → Your API
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| "Unknown error occurred" | Enable `ALLOW_USER_PASSWORD_AUTH` in Cognito app client |
-| Backend changes not showing | Restart sandbox and Expo with `npx expo start -c` |
-| Session not persisting | Already handled with AsyncStorage |
+- **Storage**: DynamoDB → Tables → Your table
 
 ## Documentation
 
