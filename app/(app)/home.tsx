@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getCurrentUser, fetchUserAttributes, signOut } from '@aws-amplify/auth';
-import { LogOut } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/ui/Button';
@@ -86,7 +85,22 @@ export default function Home() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loading}>Loading...</Text>
+        <View style={styles.loadingContainer}>
+          {/* Animated skeleton avatar */}
+          <View style={styles.skeletonAvatar}>
+            <ActivityIndicator size="large" color={Colors.black} />
+          </View>
+          
+          {/* Loading text */}
+          <Text style={styles.loadingText}>Loading your profile...</Text>
+          
+          {/* Skeleton text lines */}
+          <View style={styles.skeletonTextContainer}>
+            <View style={[styles.skeletonText, { width: '60%' }]} />
+            <View style={[styles.skeletonText, { width: '80%' }]} />
+            <View style={[styles.skeletonText, { width: '40%' }]} />
+          </View>
+        </View>
       </View>
     );
   }
@@ -143,10 +157,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loading: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  skeletonAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.gray100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  loadingText: {
     fontSize: 16,
     color: Colors.gray600,
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: 'DMSans_500Medium',
+    marginBottom: 32,
+  },
+  skeletonTextContainer: {
+    width: '100%',
+    maxWidth: 300,
+    alignItems: 'center',
+    gap: 12,
+  },
+  skeletonText: {
+    height: 16,
+    backgroundColor: Colors.gray200,
+    borderRadius: 8,
   },
   avatarContainer: {
     marginBottom: 32,
