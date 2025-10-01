@@ -9,13 +9,32 @@ A React Native mobile app with email authentication, built with Expo and AWS Amp
 - Session persistence
 - Works in Expo Go
 
-## Tech Stack
-
+**Tech Stack**:
 - **Frontend**: React Native + Expo + TypeScript
-- **Backend**: AWS Amplify Gen 2
-- **Auth**: Amazon Cognito
+- **Auth**: AWS Cognito (USER_PASSWORD_AUTH for Expo Go)
 - **API**: AWS AppSync GraphQL
-- **Storage**: AWS DynamoDB
+- **Database**: Amazon DynamoDB
+- **Backend**: AWS Amplify Gen 2 (Infrastructure as Code)
+
+## 🏗️ Architecture
+
+![AWS Architecture Diagram](./docs/aws-archi.gif)
+
+### How It Works
+
+**Authentication Flow**:
+- User signs up → Cognito creates account
+- Email verification via OTP
+- Post-confirmation Lambda triggers
+- Profile auto-created in DynamoDB
+
+**Data Flow**:
+- Frontend → Amplify SDK → AppSync GraphQL → DynamoDB
+- Real-time sync via AppSync subscriptions
+- Authorization via Cognito User Pools
+
+
+
 
 ## 🚀 Quick Start
 
@@ -50,24 +69,6 @@ expo-amplify/
 └── amplify_outputs.json    # Auto-generated config
 ```
 
-## Key Changes for Expo Go
-
-Amplify's default auth uses SRP (requires native modules). We modified it to work in Expo Go:
-
-
-1. **Changed auth flow** to `USER_PASSWORD_AUTH`:
-   ```typescript
-   await signIn({
-     username: email,
-     password,
-     options: { authFlowType: "USER_PASSWORD_AUTH" }
-   });
-   ```
-
-2. **Enabled in Cognito**: AWS Console → Cognito → App clients → Enable `ALLOW_USER_PASSWORD_AUTH`
-
-3. **Custom UI**: Built with React Native components and Expo Router instead of Amplify Authenticator
-
 > **For production**: Use a native build with `USER_SRP_AUTH` for better security.
 
 ## View Your Resources
@@ -89,30 +90,6 @@ cat amplify_outputs.json | grep '"url"'
 
 - **Detailed Guide**: See `DEVELOPER_GUIDE.md` for comprehensive documentation
 
-
-## 🏗️ Architecture
-
-![AWS Architecture Diagram](./docs/aws-archi.gif)
-
-### How It Works
-
-**Authentication Flow**:
-- User signs up → Cognito creates account
-- Email verification via OTP
-- Post-confirmation Lambda triggers
-- Profile auto-created in DynamoDB
-
-**Data Flow**:
-- Frontend → Amplify SDK → AppSync GraphQL → DynamoDB
-- Real-time sync via AppSync subscriptions
-- Authorization via Cognito User Pools
-
-**Tech Stack**:
-- **Frontend**: React Native + Expo + TypeScript
-- **Auth**: AWS Cognito (USER_PASSWORD_AUTH for Expo Go)
-- **API**: AWS AppSync GraphQL
-- **Database**: Amazon DynamoDB
-- **Backend**: AWS Amplify Gen 2 (Infrastructure as Code)
 
 ## 📖 Learn More
 
