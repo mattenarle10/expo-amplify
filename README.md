@@ -90,6 +90,30 @@ cat amplify_outputs.json | grep '"url"'
 - **Detailed Guide**: See `DEVELOPER_GUIDE.md` for comprehensive documentation
 
 
+## 🏗️ Architecture
+
+![AWS Architecture Diagram](./docs/aws-archi.gif)
+
+### How It Works
+
+**Authentication Flow**:
+- User signs up → Cognito creates account
+- Email verification via OTP
+- Post-confirmation Lambda triggers
+- Profile auto-created in DynamoDB
+
+**Data Flow**:
+- Frontend → Amplify SDK → AppSync GraphQL → DynamoDB
+- Real-time sync via AppSync subscriptions
+- Authorization via Cognito User Pools
+
+**Tech Stack**:
+- **Frontend**: React Native + Expo + TypeScript
+- **Auth**: AWS Cognito (USER_PASSWORD_AUTH for Expo Go)
+- **API**: AWS AppSync GraphQL
+- **Database**: Amazon DynamoDB
+- **Backend**: AWS Amplify Gen 2 (Infrastructure as Code)
+
 ## 📖 Learn More
 
 - [AWS Amplify Docs](https://docs.amplify.aws/react-native/)
