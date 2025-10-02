@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { getCurrentUser, fetchUserAttributes, signOut } from '@aws-amplify/auth';
+import { getCurrentUser, fetchUserAttributes, signOut, updateUserAttribute } from '@aws-amplify/auth';
+import { Edit3 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { Colors } from '../../constants/Colors';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
 import { dataClient } from '../../utils/amplify';
 
 export default function Home() {
@@ -12,6 +15,9 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -61,6 +67,57 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error managing user profile:', error);
+    }
+  };
+
+  const handleEditUsername = () => {
+    setNewUsername(userProfile?.username || '');
+    setShowEditModal(true);
+  };
+
+  const handleUpdateUsername = async () => {
+    if (!newUsername.trim() || newUsername === userProfile?.username) {
+      setShowEditModal(false);
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      // Update in Cognito
+      await updateUserAttribute({
+        userAttribute: {
+          attributeKey: 'preferred_username',
+          value: newUsername.trim(),
+        },
+      });
+
+      // Update in DynamoDB
+      await dataClient.models.UserProfile.update({
+        userId: user.userId,
+        username: newUsername.trim(),
+      });
+
+      // Refresh profile
+      const { data: updatedProfile } = await dataClient.models.UserProfile.get({ 
+        userId: user.userId 
+      });
+      setUserProfile(updatedProfile);
+
+      Toast.show({
+        type: 'success',
+        text1: 'Username updated!',
+        text2: `Your new username is ${newUsername.trim()}`,
+      });
+
+      setShowEditModal(false);
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Update failed',
+        text2: error.message || 'Please try again',
+      });
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -122,7 +179,12 @@ export default function Home() {
 
         {/* Welcome */}
         <View style={styles.welcome}>
-          <Text style={styles.greeting}>Hello, {displayName}!</Text>
+          <View style={styles.usernameRow}>
+            <Text style={styles.greeting}>Hello, {displayName}!</Text>
+            <TouchableOpacity onPress={handleEditUsername} style={styles.editButton}>
+              <Edit3 size={20} color={Colors.gray600} />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.subtitle}>
             Thanks for trying out my{'\n'}Expo Auth demo
           </Text>
@@ -142,6 +204,33 @@ export default function Home() {
           variant="secondary"
         />
       </View>
+
+      {/* Edit Username Modal */}
+      <Modal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Update Username"
+      >
+        <Input
+          value={newUsername}
+          onChangeText={setNewUsername}
+          placeholder="Enter new username"
+          autoCapitalize="none"
+        />
+        <View style={styles.modalButtons}>
+          <Button
+            title="Cancel"
+            onPress={() => setShowEditModal(false)}
+            variant="secondary"
+          />
+          <Button
+            title="Save"
+            onPress={handleUpdateUsername}
+            loading={updating}
+            disabled={!newUsername.trim() || newUsername === userProfile?.username}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -210,14 +299,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   greeting: {
     fontSize: 32,
     fontWeight: '700',
     color: Colors.black,
-    marginBottom: 12,
     fontFamily: 'DMSans_700Bold',
     letterSpacing: -0.5,
     textAlign: 'center',
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: Colors.gray100,
   },
   subtitle: {
     fontSize: 16,
