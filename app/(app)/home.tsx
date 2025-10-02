@@ -355,4 +355,9 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
     fontFamily: 'DMSans_500Medium',
   },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
 });
