@@ -54,9 +54,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray50,
     borderWidth: 1.5,
     borderColor: Colors.gray200,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    minHeight: 56,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    minHeight: 48,
   },
   inputError: {
     borderColor: Colors.error,

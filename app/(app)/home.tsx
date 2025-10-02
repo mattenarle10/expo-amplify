@@ -211,24 +211,35 @@ export default function Home() {
         onClose={() => setShowEditModal(false)}
         title="Update Username"
       >
-        <Input
-          value={newUsername}
-          onChangeText={setNewUsername}
-          placeholder="Enter new username"
-          autoCapitalize="none"
-        />
-        <View style={styles.modalButtons}>
-          <Button
-            title="Cancel"
-            onPress={() => setShowEditModal(false)}
-            variant="secondary"
+        <View style={styles.modalContent}>
+          <Input
+            value={newUsername}
+            onChangeText={setNewUsername}
+            placeholder="Enter new username"
+            autoCapitalize="none"
           />
-          <Button
-            title="Save"
-            onPress={handleUpdateUsername}
-            loading={updating}
-            disabled={!newUsername.trim() || newUsername === userProfile?.username}
-          />
+          <View style={styles.modalButtons}>
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={() => setShowEditModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.saveButton,
+                (!newUsername.trim() || newUsername === userProfile?.username) && styles.saveButtonDisabled
+              ]}
+              onPress={handleUpdateUsername}
+              disabled={!newUsername.trim() || newUsername === userProfile?.username || updating}
+            >
+              {updating ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Text style={styles.saveButtonText}>Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
@@ -355,9 +366,44 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
     fontFamily: 'DMSans_500Medium',
   },
+  modalContent: {
+    gap: 16,
+  },
   modalButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: 10,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.gray700,
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  saveButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: Colors.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonDisabled: {
+    backgroundColor: Colors.gray300,
+  },
+  saveButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.white,
+    fontFamily: 'DMSans_600SemiBold',
   },
 });
