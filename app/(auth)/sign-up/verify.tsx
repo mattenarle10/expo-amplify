@@ -1,22 +1,51 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Mail } from 'lucide-react-native';
 import { confirmSignUp, resendSignUpCode } from '@aws-amplify/auth';
 import Toast from 'react-native-toast-message';
 import { Colors } from '../../../constants/Colors';
 import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
 
 export default function SignUpVerify() {
   const router = useRouter();
   const { username, email } = useLocalSearchParams();
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const inputRefs = useRef<(TextInput | null)[]>([]);
+
+  const handleCodeChange = (text: string, index: number) => {
+    // Only allow single digit
+    if (text.length > 1) {
+      text = text.charAt(text.length - 1);
+    }
+
+    // Only allow numbers
+    if (text && !/^\d$/.test(text)) {
+      return;
+    }
+
+    const newCode = [...code];
+    newCode[index] = text;
+    setCode(newCode);
+
+    // Auto-focus next input
+    if (text && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (e: any, index: number) => {
+    // Handle backspace
+    if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
 
   const handleVerify = async () => {
-    if (!code.trim()) {
+    const fullCode = code.join('');
+    if (!fullCode.trim() || fullCode.length !== 6) {
       return;
     }
 
@@ -24,7 +53,7 @@ export default function SignUpVerify() {
     try {
       await confirmSignUp({
         username: email as string,
-        confirmationCode: code.trim(),
+        confirmationCode: fullCode,
       });
 
       Toast.show({
@@ -97,18 +126,33 @@ export default function SignUpVerify() {
 
         {/* Form */}
         <View style={styles.form}>
-          <Input
-            value={code}
-            onChangeText={setCode}
-            placeholder="Enter 6-digit code"
-            keyboardType="numeric"
-          />
+          <View style={styles.codeContainer}>
+            {code.map((digit, index) => (
+              <TextInput
+                key={index}
+                ref={(ref) => {
+                  inputRefs.current[index] = ref;
+                }}
+                style={[
+                  styles.codeInput,
+                  digit && styles.codeInputFilled,
+                ]}
+                value={digit}
+                onChangeText={(text) => handleCodeChange(text, index)}
+                onKeyPress={(e) => handleKeyPress(e, index)}
+                keyboardType="number-pad"
+                maxLength={1}
+                selectTextOnFocus
+                autoFocus={index === 0}
+              />
+            ))}
+          </View>
 
           <Button
             title="Verify"
             onPress={handleVerify}
             loading={loading}
-            disabled={code.length !== 6}
+            disabled={code.join('').length !== 6}
           />
         </View>
 
@@ -190,6 +234,29 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: 24,
+  },
+  codeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 32,
+  },
+  codeInput: {
+    width: 50,
+    height: 60,
+    borderWidth: 2,
+    borderColor: Colors.gray200,
+    borderRadius: 12,
+    textAlign: 'center',
+    fontSize: 24,
+    fontWeight: '700',
+    fontFamily: 'DMSans_700Bold',
+    color: Colors.black,
+    backgroundColor: Colors.white,
+  },
+  codeInputFilled: {
+    borderColor: Colors.black,
+    backgroundColor: Colors.gray50,
   },
   resend: {
     flexDirection: 'row',
