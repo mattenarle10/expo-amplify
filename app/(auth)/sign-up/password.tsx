@@ -52,8 +52,8 @@ export default function SignUpPassword() {
 
       Toast.show({
         type: 'success',
-        text1: 'Account created!',
-        text2: 'Check your email for verification code',
+        text1: 'Verification code sent!',
+        text2: 'Check your email to verify your account',
       });
 
       router.push({
