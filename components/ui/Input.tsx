@@ -7,6 +7,7 @@ interface InputProps {
   onChangeText: (text: string) => void;
   placeholder: string;
   icon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
@@ -18,6 +19,7 @@ export const Input: React.FC<InputProps> = ({
   onChangeText,
   placeholder,
   icon,
+  rightIcon,
   secureTextEntry,
   keyboardType = 'default',
   autoCapitalize = 'none',
@@ -38,6 +40,7 @@ export const Input: React.FC<InputProps> = ({
           autoCapitalize={autoCapitalize}
           autoCorrect={false}
         />
+        {rightIcon && <View style={styles.icon}>{rightIcon}</View>}
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>

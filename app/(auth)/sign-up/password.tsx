@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Lock, ArrowLeft, Check } from 'lucide-react-native';
+import { Lock, ArrowLeft, Check, Eye, EyeOff } from 'lucide-react-native';
 import { signUp } from '@aws-amplify/auth';
 import Toast from 'react-native-toast-message';
 import { Colors } from '../../../constants/Colors';
@@ -14,6 +14,8 @@ export default function SignUpPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Password validation
   const hasMinLength = password.length >= 8;
@@ -101,16 +103,34 @@ export default function SignUpPassword() {
               value={password}
               onChangeText={setPassword}
               placeholder="Password"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               icon={<Lock size={20} color={Colors.gray500} />}
+              rightIcon={
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  {showPassword ? (
+                    <EyeOff size={20} color={Colors.gray500} />
+                  ) : (
+                    <Eye size={20} color={Colors.gray500} />
+                  )}
+                </TouchableOpacity>
+              }
             />
 
             <Input
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="Confirm password"
-              secureTextEntry
+              secureTextEntry={!showConfirmPassword}
               icon={<Lock size={20} color={Colors.gray500} />}
+              rightIcon={
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} color={Colors.gray500} />
+                  ) : (
+                    <Eye size={20} color={Colors.gray500} />
+                  )}
+                </TouchableOpacity>
+              }
             />
 
             {/* Requirements */}
