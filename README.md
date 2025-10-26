@@ -1,6 +1,8 @@
 # 🚀 Expo + AWS Amplify: Auth That Actually Works in Expo Go
 
 > **TL;DR**: Full-stack mobile auth with AWS Amplify Gen 2 that runs in Expo Go—no native build required for development.
+
+
 > **Read my Blog about it: https://towardsaws.com/weekend-mvp-expo-go-aws-amplify-gen-2-for-startups-b42e3d62fff1**
 
 ![AWS Architecture Diagram](./docs/aws-archi.gif)
