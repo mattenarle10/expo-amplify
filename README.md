@@ -29,6 +29,18 @@ npx expo start                                   # Terminal 2
 # Scan QR → Open in Expo Go → Done ✨
 ```
 
+## 🧹 Cleaning up the sandbox
+
+```bash
+# Delete the sandbox for this app (same profile you used to create it)
+npx ampx sandbox delete --profile <your-aws-profile>
+
+# If you used a named sandbox identifier
+npx ampx sandbox delete --name <your-sandbox-name> --profile <your-aws-profile>
+```
+
+> **Note**: This only deletes the Amplify sandbox resources for this project, not other environments or AWS resources in your account.
+
 ## 📁 Key Files
 
 ```
